@@ -1,0 +1,71 @@
+name: Matrix Build Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for Node v${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: matrix-4569e89
+        run: echo "Starting matrix build for Node.js ${{ matrix.node-version }}"
+      
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      - name: Display Node version
+        run: node --version
+      
+      - name: Generate build metadata
+        run: |
+          mkdir -p build-output
+          cat > build-output/build-info.json << 'EOF'
+          {
+            "buildNumber": "${{ github.run_number }}",
+            "nodeVersion": "${{ matrix.node-version }}",
+            "buildTimestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "commitSHA": "${{ github.sha }}",
+            "workflow": "${{ github.workflow }}"
+          }
+          EOF
+      
+      - name: Create build artifact
+        run: |
+          echo "Build Information for Node.js ${{ matrix.node-version }}" > build-output/output.txt
+          echo "========================================" >> build-output/output.txt
+          echo "Build Run ID: ${{ github.run_id }}" >> build-output/output.txt
+          echo "Build Number: ${{ github.run_number }}" >> build-output/output.txt
+          echo "Node Version: ${{ matrix.node-version }}" >> build-output/output.txt
+          echo "Commit SHA: ${{ github.sha }}" >> build-output/output.txt
+          echo "Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> build-output/output.txt
+          echo "Repository: ${{ github.repository }}" >> build-output/output.txt
+          echo "Branch: ${{ github.ref }}" >> build-output/output.txt
+          echo "========================================" >> build-output/output.txt
+          echo "Matrix Build Completed Successfully!" >> build-output/output.txt
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-4569e89-v${{ matrix.node-version }}
+          path: build-output/
+          retention-days: 30
+      
+      - name: Verify artifact content
+        run: |
+          echo "Artifact content:"
+          cat build-output/output.txt
